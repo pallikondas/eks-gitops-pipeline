@@ -1,9 +1,16 @@
+# Production environment overrides
+replicaCount: 3
+
 image:
-  repository: placeholder
-  tag: latest
+  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service"
+  tag: "latest"
 
-replicaCount: 2
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 60
 
-service:
-  type: ClusterIP
-  port: 3000
+env:
+  APP_VERSION: "production"
+  NODE_ENV: "production"

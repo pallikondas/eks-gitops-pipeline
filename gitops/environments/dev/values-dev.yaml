@@ -1,9 +1,18 @@
-image:
-  repository: 984449730427.dkr.ecr.us-east-1.amazonaws.com/order-service
-  tag: 1770a8a35fc39821522a8b6b9ecfcc367eb8a947
-
+# Dev environment overrides
 replicaCount: 1
 
-service:
-  type: ClusterIP
-  port: 3000
+image:
+  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service"
+  tag: "latest"
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
+
+env:
+  APP_VERSION: "dev"
+  NODE_ENV: "development"
