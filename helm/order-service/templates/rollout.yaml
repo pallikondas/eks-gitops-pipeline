@@ -1,0 +1,49 @@
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "order-service.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "order-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "order-service.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+
+  strategy:
+    canary:
+      steps:
+        - setWeight: 10
+        - pause:
+            duration: 2m
+
+        - setWeight: 30
+        - pause:
+            duration: 2m
+
+        - setWeight: 60
+        - pause:
+            duration: 1m
+
+        - setWeight: 100
+
+      canaryService: {{ include "order-service.fullname" . }}-canary
+      stableService: {{ include "order-service.fullname" . }}-stable
+
+      trafficRouting:
+        nginx:
+          stableIngress: {{ include "order-service.fullname" . }}-stable
+{{- end }}

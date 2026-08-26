@@ -14,3 +14,6 @@ autoscaling:
 env:
   APP_VERSION: "production"
   NODE_ENV: "production"
+
+rollout:
+  enabled: true
