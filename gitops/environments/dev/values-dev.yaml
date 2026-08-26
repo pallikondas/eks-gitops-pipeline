@@ -1,0 +1,9 @@
+image:
+  repository: placeholder
+  tag: latest
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 3000
