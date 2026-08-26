@@ -2,8 +2,8 @@
 replicaCount: 1
 
 image:
-  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service"
-  tag: "latest"
+  repository: 984449730427.dkr.ecr.us-east-1.amazonaws.com/order-service
+  tag: 3e0b6fd75464944607f442fcb53421da8ccfc97b
 
 resources:
   requests:
