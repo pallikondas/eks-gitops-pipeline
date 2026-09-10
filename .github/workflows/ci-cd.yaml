@@ -99,6 +99,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Verify AWS deployment prerequisites
+        if: github.event_name == 'push'
+        run: |
+          aws ecr describe-repositories \
+            --repository-names "${ECR_REPOSITORY}" \
+            --region "${AWS_REGION}" >/dev/null || {
+              echo "Missing ECR repository ${ECR_REPOSITORY}. Run the Deploy ShopCore Environment workflow first."
+              exit 1
+            }
+          aws eks wait cluster-active \
+            --name "${EKS_CLUSTER_NAME:-megamart-shopcore-dev}" \
+            --region "${AWS_REGION}"
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
