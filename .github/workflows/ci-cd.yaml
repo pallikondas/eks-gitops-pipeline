@@ -249,7 +249,12 @@ jobs:
 
       - name: Push image to ECR
         run: |
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          IMAGE_REF="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+          if docker push "${IMAGE_REF}" 2>&1 | tee /tmp/push.log; then
+            exit 0
+          fi
+          grep -q 'already exists' /tmp/push.log && echo "Tag already pushed by a concurrent run: ${IMAGE_REF}" && exit 0
+          exit 1
 
       - name: Wait for ECR tag visibility
         run: |
@@ -316,4 +321,8 @@ jobs:
         run: |
           git add gitops/environments/dev/values-dev.yaml
           git diff --staged --quiet || git commit -m "chore(gitops): promote image ${{ env.IMAGE_TAG }} to dev [skip ci]"
-          git push origin "${GITHUB_REF_NAME}"
+          for attempt in 1 2 3 4 5; do
+            git push origin "${GITHUB_REF_NAME}" && break
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            sleep 3
+          done
