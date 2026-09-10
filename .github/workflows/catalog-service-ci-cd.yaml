@@ -13,6 +13,7 @@ on:
       - 'app/catalog-service/**'
       - 'gitops/environments/**/catalog-values-*.yaml'
       - '.github/workflows/catalog-service-ci-cd.yaml'
+  workflow_dispatch: {}
 
 env:
   AWS_REGION: us-east-1
@@ -58,7 +59,7 @@ jobs:
     name: Build, scan, and push Catalog image
     runs-on: ubuntu-latest
     needs: [test, sast]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
       security-events: write
@@ -120,7 +121,7 @@ jobs:
     name: Promote Catalog image in GitOps
     runs-on: ubuntu-latest
     needs: build-scan-push
-    if: github.ref_name == 'megamart-shopcore'
+    if: github.ref_name == 'main' || github.ref_name == 'megamart-shopcore'
     permissions:
       contents: write
     steps:

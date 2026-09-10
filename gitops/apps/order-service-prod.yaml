@@ -12,7 +12,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/pallikondas/eks-gitops-pipeline
-    targetRevision: megamart-shopcore
+    targetRevision: main
     path: helm/order-service
     helm:
       releaseName: order-service
