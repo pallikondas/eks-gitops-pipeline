@@ -1,0 +1,57 @@
+name: Destroy ShopCore Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DESTROY-megamart-shopcore-dev to authorize destruction"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  PROJECT_NAME: megamart-shopcore
+  ENVIRONMENT: dev
+
+jobs:
+  destroy:
+    name: Destroy AWS environment
+    runs-on: ubuntu-latest
+    environment:
+      name: destroy-dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify destruction confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "${CONFIRMATION}" = "DESTROY-${PROJECT_NAME}-${ENVIRONMENT}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Destroy environment
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
+          TF_BACKEND_REGION: ${{ secrets.TF_BACKEND_REGION }}
+        run: |
+          test -n "${TF_BACKEND_BUCKET}"
+          test -n "${TF_BACKEND_KEY}"
+          test -n "${TF_BACKEND_REGION}"
+          printf '%s\n' "${PROJECT_NAME}-${ENVIRONMENT}" | ./scripts/destroy-environment.sh "${CONFIRMATION}"

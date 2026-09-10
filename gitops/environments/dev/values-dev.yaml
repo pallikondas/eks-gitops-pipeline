@@ -2,8 +2,8 @@
 replicaCount: 1
 
 image:
-  repository: 984449730427.dkr.ecr.us-east-1.amazonaws.com/order-service
-  tag: 959c8383198eb656dec0f9956f4e4b1bf695c773
+  repository: 517811334008.dkr.ecr.us-east-1.amazonaws.com/megamart-shopcore/order-service
+  tag: latest
 
 resources:
   requests:
@@ -16,3 +16,17 @@ resources:
 env:
   APP_VERSION: "dev"
   NODE_ENV: "development"
+  AWS_REGION: "us-east-1"
+  ORDER_TABLE_NAME: "megamart-shopcore-dev-orders"
+
+serviceAccount:
+  roleArn: "arn:aws:iam::517811334008:role/megamart-shopcore-dev-order-service"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+
+ingress:
+  enabled: true
+  host: "shopcore.example.com"

@@ -1,0 +1,180 @@
+name: Deploy ShopCore Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DEPLOY-megamart-shopcore-dev to authorize deployment"
+        required: true
+        type: string
+      destroy_on_failure:
+        description: "Require approval to destroy the environment if deployment fails"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  PROJECT_NAME: megamart-shopcore
+  ENVIRONMENT: dev
+  TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+  TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
+  TF_BACKEND_REGION: ${{ secrets.TF_BACKEND_REGION }}
+
+jobs:
+  authorize:
+    name: Authorize deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deployment confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: test "${CONFIRMATION}" = "DEPLOY-${PROJECT_NAME}-${ENVIRONMENT}"
+      - name: Verify Terraform backend secrets
+        run: |
+          test -n "${TF_BACKEND_BUCKET}"
+          test -n "${TF_BACKEND_KEY}"
+          test -n "${TF_BACKEND_REGION}"
+
+  provision:
+    name: Provision AWS infrastructure
+    runs-on: ubuntu-latest
+    needs: authorize
+    environment:
+      name: deploy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+      - name: Initialize remote state
+        working-directory: infrastructure/terraform
+        run: terraform init -input=false -backend-config="bucket=${TF_BACKEND_BUCKET}" -backend-config="key=${TF_BACKEND_KEY}" -backend-config="region=${TF_BACKEND_REGION}"
+      - name: Validate and plan
+        working-directory: infrastructure/terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform validate
+          terraform plan -input=false -out=megamart.tfplan
+      - name: Apply reviewed plan
+        working-directory: infrastructure/terraform
+        run: terraform apply -input=false -auto-approve megamart.tfplan
+
+  bootstrap:
+    name: Bootstrap platform and GitOps
+    runs-on: ubuntu-latest
+    needs: provision
+    environment:
+      name: deploy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --region "${AWS_REGION}" --name "${PROJECT_NAME}-${ENVIRONMENT}"
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.0
+      - name: Install Argo CD
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm repo update
+          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+          helm upgrade --install argocd argo/argo-cd --namespace argocd --set server.service.type=ClusterIP --wait --timeout 10m
+      - name: Install AWS Load Balancer Controller
+        run: |
+          kubectl apply -f gitops/platform/aws-load-balancer-controller-serviceaccount.yaml
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            --namespace kube-system \
+            --set clusterName="${PROJECT_NAME}-${ENVIRONMENT}" \
+            --set region="${AWS_REGION}" \
+            --set vpcId="$(terraform -chdir=infrastructure/terraform output -raw vpc_id 2>/dev/null || aws eks describe-cluster --name "${PROJECT_NAME}-${ENVIRONMENT}" --region "${AWS_REGION}" --query 'cluster.resourcesVpcConfig.vpcId' --output text)" \
+            --set serviceAccount.create=false \
+            --set serviceAccount.name=aws-load-balancer-controller \
+            --wait --timeout 10m
+      - name: Register Argo CD Applications
+        run: |
+          kubectl get secret grafana-admin-credentials -n monitoring
+          kubectl apply \
+            -f gitops/apps/aws-load-balancer-controller-serviceaccount.yaml \
+            -f gitops/apps/cluster-autoscaler.yaml \
+            -f gitops/apps/metrics-server.yaml \
+            -f gitops/apps/observability-stack.yaml \
+            -f gitops/apps/observability-dashboards.yaml \
+            -f gitops/apps/order-service.yaml \
+            -f gitops/apps/catalog-service.yaml
+      - name: Wait for platform applications
+        run: |
+          kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=10m
+          kubectl wait --for=condition=available deployment/metrics-server -n kube-system --timeout=10m
+
+  verify:
+    name: Verify deployment
+    runs-on: ubuntu-latest
+    needs: bootstrap
+    environment:
+      name: deploy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --region "${AWS_REGION}" --name "${PROJECT_NAME}-${ENVIRONMENT}"
+      - name: Verify nodes and workloads
+        run: |
+          kubectl get nodes -o wide
+          kubectl get hpa -A
+          kubectl get ingress -A
+          kubectl get servicemonitor -A
+          kubectl wait --for=condition=available deployment/order-service -n order-service-dev --timeout=10m
+          kubectl wait --for=condition=available deployment/catalog-service -n catalog-service-dev --timeout=10m
+      - name: Verify ALB address
+        run: |
+          for attempt in {1..30}; do
+            address=$(kubectl get ingress -n order-service-dev order-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+            if [[ -n "${address}" ]]; then echo "ALB=${address}"; exit 0; fi
+            sleep 10
+          done
+          echo "Timed out waiting for ALB address"
+          exit 1
+
+  cleanup-on-failure:
+    name: Destroy failed deployment
+    runs-on: ubuntu-latest
+    needs: [provision, bootstrap, verify]
+    if: ${{ always() && failure() && inputs.destroy_on_failure }}
+    environment:
+      name: destroy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+      - name: Destroy failed environment
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
+          TF_BACKEND_REGION: ${{ secrets.TF_BACKEND_REGION }}
+        run: printf '%s\n' "${PROJECT_NAME}-${ENVIRONMENT}" | ./scripts/destroy-environment.sh "DESTROY-${PROJECT_NAME}-${ENVIRONMENT}"

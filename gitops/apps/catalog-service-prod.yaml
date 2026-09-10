@@ -1,53 +1,32 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: order-service-dev
+  name: catalog-service-prod
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   labels:
-    environment: dev
+    environment: prod
     team: platform
-
 spec:
   project: default
-
   source:
     repoURL: https://github.com/pallikondas/eks-gitops-pipeline
     targetRevision: megamart-shopcore
-    path: helm/order-service
+    path: helm/catalog-service
     helm:
-      releaseName: order-service
+      releaseName: catalog-service
       valueFiles:
-        - ../../gitops/environments/dev/values-dev.yaml
-
+        - ../../gitops/environments/prod/catalog-values-prod.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: order-service-dev
-
+    namespace: catalog-service-prod
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
       allowEmpty: false
-
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - ApplyOutOfSyncOnly=true
-
-    retry:
-      limit: 3
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
-
-  revisionHistoryLimit: 5
-
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      jsonPointers:
-        - /spec/replicas
-

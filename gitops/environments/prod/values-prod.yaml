@@ -2,7 +2,7 @@
 replicaCount: 3
 
 image:
-  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/order-service"
+  repository: "517811334008.dkr.ecr.us-east-1.amazonaws.com/megamart-shopcore/order-service"
   tag: "latest"
 
 autoscaling:
@@ -14,6 +14,11 @@ autoscaling:
 env:
   APP_VERSION: "production"
   NODE_ENV: "production"
+  AWS_REGION: "us-east-1"
+  ORDER_TABLE_NAME: "megamart-shopcore-prod-orders"
+
+serviceAccount:
+  roleArn: "arn:aws:iam::517811334008:role/megamart-shopcore-prod-order-service"
 
 rollout:
-  enabled: true
+  enabled: false

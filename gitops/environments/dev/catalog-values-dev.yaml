@@ -1,0 +1,26 @@
+replicaCount: 1
+
+image:
+  repository: 517811334008.dkr.ecr.us-east-1.amazonaws.com/megamart-shopcore/catalog-service
+  tag: latest
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
+
+env:
+  APP_VERSION: "dev"
+  NODE_ENV: "development"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+
+ingress:
+  enabled: true
+  host: "shopcore.example.com"
