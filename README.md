@@ -130,6 +130,12 @@ For a GitHub-hosted teardown, configure the `destroy-dev` environment approval a
 
 The ECR repositories use `force_delete` because this is an ephemeral capstone environment. Do not copy that setting into a retained production registry. Never run the destroy workflow against a production state key.
 
+## Deploy with failure cleanup
+
+For a complete environment deployment, manually run the `Deploy ShopCore Environment` workflow. Enter `DEPLOY-megamart-shopcore-dev`, enable `destroy_on_failure`, and approve the `deploy-dev` environment. The workflow runs in order: Terraform plan/apply, Argo CD and platform bootstrap, workload synchronization, then ALB/workload verification.
+
+If any deployment stage fails, the workflow pauses at the protected `destroy-dev` environment and, after approval, removes Argo Applications before running Terraform destroy. This cleanup requires the same S3 backend secrets as the standalone destroy workflow. Keep `destroy_on_failure` enabled for disposable capstone runs; disable it only when intentionally preserving a partially deployed environment for investigation.
+
 ## Observability
 
 Prometheus scrapes `/metrics` from both services through `ServiceMonitor` resources. Grafana loads the ShopCore dashboard from `gitops/observability/grafana-shopcore-dashboard.yaml`.

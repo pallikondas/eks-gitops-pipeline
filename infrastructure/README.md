@@ -33,7 +33,7 @@ terraform init \
 	-backend-config="region=$AWS_REGION"
 ```
 
-The bucket must already exist and should have versioning and encryption enabled. The workflow requires `TF_BACKEND_BUCKET`, `TF_BACKEND_KEY`, and `TF_BACKEND_REGION` secrets. Local teardown uses local state when these variables are unset.
+The bucket must already exist and should have versioning and encryption enabled. The deployment and destroy workflows require `TF_BACKEND_BUCKET`, `TF_BACKEND_KEY`, and `TF_BACKEND_REGION` secrets. Local teardown uses local state when these variables are unset.
 
 Before applying, confirm the selected AWS account and region:
 

@@ -54,4 +54,4 @@ jobs:
           test -n "${TF_BACKEND_BUCKET}"
           test -n "${TF_BACKEND_KEY}"
           test -n "${TF_BACKEND_REGION}"
-          printf '%s\n' "${CONFIRMATION}" | ./scripts/destroy-environment.sh "${CONFIRMATION}"
+          printf '%s\n' "${PROJECT_NAME}-${ENVIRONMENT}" | ./scripts/destroy-environment.sh "${CONFIRMATION}"
