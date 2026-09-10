@@ -2,7 +2,7 @@ name: CI/CD Pipeline — Order Service
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, megamart-shopcore]
     paths:
       - 'app/**'
       - 'gitops/**'
@@ -115,7 +115,6 @@ jobs:
           load: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -233,16 +232,9 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Tag latest image
-        run: |
-          docker tag \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-
       - name: Push image to ECR
         run: |
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
 
       - name: Output image details
         run: |
@@ -255,7 +247,7 @@ jobs:
     name: GitOps – Update Image Tag
     runs-on: ubuntu-latest
     needs: [push-to-ecr]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'megamart-shopcore')
 
     steps:
       - name: Checkout code
@@ -293,4 +285,4 @@ jobs:
         run: |
           git add gitops/environments/dev/values-dev.yaml
           git diff --staged --quiet || git commit -m "chore(gitops): promote image ${{ env.IMAGE_TAG }} to dev [skip ci]"
-          git push origin main
+          git push origin "${GITHUB_REF_NAME}"

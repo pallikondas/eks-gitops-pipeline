@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "order_service_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${module.eks.oidc_provider}:sub"
-      values   = ["system:serviceaccount:order-service-dev:order-service"]
+      values   = ["system:serviceaccount:${var.order_service_namespace}:order-service"]
     }
   }
 }

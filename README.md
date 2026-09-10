@@ -63,6 +63,8 @@ Argo CD owns application and platform resources after bootstrap. Do not deploy a
 ```sh
 kubectl apply -f gitops/apps/order-service.yaml
 kubectl apply -f gitops/apps/catalog-service.yaml
+kubectl apply -f gitops/apps/order-service-prod.yaml
+kubectl apply -f gitops/apps/catalog-service-prod.yaml
 kubectl apply -f gitops/apps/cluster-autoscaler.yaml
 kubectl apply -f gitops/apps/observability-stack.yaml
 kubectl apply -f gitops/apps/observability-dashboards.yaml

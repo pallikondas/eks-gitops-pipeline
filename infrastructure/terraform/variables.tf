@@ -74,3 +74,9 @@ variable "alb_controller_service_account" {
   type        = string
   default     = "aws-load-balancer-controller"
 }
+
+variable "order_service_namespace" {
+  description = "Namespace containing the Order Service ServiceAccount for IRSA."
+  type        = string
+  default     = "order-service-dev"
+}

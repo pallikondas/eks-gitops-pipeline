@@ -15,10 +15,10 @@ env:
   APP_VERSION: "production"
   NODE_ENV: "production"
   AWS_REGION: "us-east-1"
-  ORDER_TABLE_NAME: "megamart-shopcore-dev-orders"
+  ORDER_TABLE_NAME: "megamart-shopcore-prod-orders"
 
 serviceAccount:
-  roleArn: "arn:aws:iam::517811334008:role/megamart-shopcore-dev-order-service"
+  roleArn: "arn:aws:iam::517811334008:role/megamart-shopcore-prod-order-service"
 
 rollout:
   enabled: false
