@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/pallikondas/eks-gitops-pipeline
-    targetRevision: megamart-shopcore
+    targetRevision: main
     path: gitops/observability
   destination:
     server: https://kubernetes.default.svc
