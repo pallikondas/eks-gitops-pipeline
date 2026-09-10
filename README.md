@@ -44,7 +44,7 @@ The baseline creates the three-AZ VPC, EKS 1.36 cluster, private managed node gr
 
 Configure kubectl and install the AWS Load Balancer Controller chart using the IRSA ServiceAccount in `gitops/platform/aws-load-balancer-controller-serviceaccount.yaml` and the role output described in [infrastructure/README.md](infrastructure/README.md). Install Argo CD once in the cluster, then register the GitOps Applications in `gitops/apps`. The Metrics Server Application provides the resource metrics API required by HPA.
 
-Create the Grafana admin secret through the approved secret-management process before syncing `observability-stack`:
+For the GitHub deployment workflow, create a protected `GRAFANA_ADMIN_PASSWORD` secret in the `deploy-dev` environment. The workflow creates the `monitoring` namespace and Kubernetes secret without printing the password. For manual bootstrap, create the Grafana admin secret through the approved secret-management process:
 
 ```sh
 kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -

@@ -50,7 +50,7 @@
 | 3.4 | Prometheus ServiceMonitors and Grafana JSON | `helm/*/templates/servicemonitor.yaml`; `gitops/observability/grafana-shopcore-dashboard.yaml` | Implemented | Dashboard JSON parses successfully; live scrape/dashboard verification remains. |
 | 3.5 | Required runbook | `README.md`; `infrastructure/README.md` | Implemented | Covers bootstrap, GitOps, load, HPA, Cluster Autoscaler, Grafana, access, and failover. Execute it after bootstrap and record results. |
 | 3.5a | Destroy after testing to control cost and exposure | `scripts/destroy-environment.sh`; `.github/workflows/destroy-environment.yaml`; `infrastructure/terraform/backend.tf` | Implemented | Local teardown supports local state; GitHub teardown requires S3 backend secrets and protected `destroy-dev` approval. Run after each test session and verify the target resources are gone. |
-| 3.5b | Roll back/destroy incomplete deployment | `.github/workflows/deploy-environment.yaml`; `.github/workflows/destroy-environment.yaml` | Implemented | Deployment workflow runs sequentially and invokes approval-gated cleanup on failure when `destroy_on_failure` is enabled. |
+| 3.5b | Roll back/destroy incomplete deployment | `.github/workflows/deploy-environment.yaml`; `.github/workflows/destroy-environment.yaml` | Implemented | Deployment workflow runs sequentially, creates the monitoring prerequisite from protected secret input, and invokes approval-gated cleanup on failure when `destroy_on_failure` is enabled. |
 
 ## Pre-deployment gate
 
