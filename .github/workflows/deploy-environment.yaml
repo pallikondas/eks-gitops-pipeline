@@ -167,7 +167,7 @@ jobs:
     name: Destroy failed deployment
     runs-on: ubuntu-latest
     needs: [provision, bootstrap, verify]
-    if: ${{ always() && failure() && inputs.destroy_on_failure }}
+    if: ${{ always() && inputs.destroy_on_failure && (needs.provision.result == 'failure' || needs.bootstrap.result == 'failure' || needs.verify.result == 'failure') }}
     environment:
       name: destroy-dev
     steps:
