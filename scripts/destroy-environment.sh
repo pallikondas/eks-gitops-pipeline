@@ -39,10 +39,11 @@ if aws eks describe-cluster --name "${CLUSTER_NAME}" --region "${AWS_REGION}" >/
 
     if kubectl cluster-info >/dev/null 2>&1; then
       printf 'Removing GitOps Applications so ALB and workload resources are cleaned up first...\n'
-      kubectl delete application \
+      for app in \
         order-service-dev catalog-service-dev cluster-autoscaler metrics-server \
-        aws-load-balancer-controller-serviceaccount observability-stack observability-dashboards \
-        --namespace argocd --ignore-not-found --wait=true --timeout=10m
+        aws-load-balancer-controller-serviceaccount observability-stack observability-dashboards; do
+        kubectl delete application "${app}" --namespace argocd --ignore-not-found --wait=false || true
+      done
     else
       printf 'kubectl cannot reach the cluster; Terraform will continue with infrastructure destruction.\n' >&2
     fi
