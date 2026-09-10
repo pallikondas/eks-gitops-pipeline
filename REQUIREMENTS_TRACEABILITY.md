@@ -56,7 +56,7 @@
 The repository may proceed to controlled AWS bootstrap only after these checks remain green:
 
 ```sh
-aws sts get-caller-identity
+gh auth loginaws sts get-caller-identity
 terraform -chdir=infrastructure/terraform fmt -check -recursive
 terraform -chdir=infrastructure/terraform validate
 terraform -chdir=infrastructure/terraform plan -out=megamart.tfplan
