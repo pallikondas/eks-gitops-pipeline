@@ -1,0 +1,9 @@
+aws_region         = "us-east-1"
+project_name       = "megamart-shopcore"
+environment        = "dev"
+cluster_version    = "1.36"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+node_instance_types = ["t3.medium"]
+node_min_size      = 3
+node_desired_size  = 3
+node_max_size      = 6

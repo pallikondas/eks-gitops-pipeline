@@ -1,0 +1,13 @@
+replicaCount: 2
+
+image:
+  repository: 517811334008.dkr.ecr.us-east-1.amazonaws.com/megamart-shopcore/catalog-service
+  tag: latest
+
+env:
+  APP_VERSION: "production"
+  NODE_ENV: "production"
+
+ingress:
+  enabled: true
+  host: "shopcore.example.com"

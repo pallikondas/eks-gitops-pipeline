@@ -1,0 +1,23 @@
+# Terraform generated files
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!terraform.tfvars.example
+*.tfplan
+
+# Local Terraform overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local development artifacts
+node_modules/
+coverage/
+.DS_Store
+
+# Local lab reference materials
+aws-labs-instructions-leson-1/
