@@ -12,7 +12,7 @@ data:
       "editable": true,
       "panels": [
         {
-          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
           "targets": [{"expr": "sum(rate(order_service_http_requests_total[5m]))", "legendFormat": "orders", "refId": "A"}, {"expr": "sum(rate(catalog_service_http_requests_total[5m]))", "legendFormat": "catalog", "refId": "B"}],
@@ -20,7 +20,7 @@ data:
           "type": "timeseries"
         },
         {
-          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
           "targets": [{"expr": "histogram_quantile(0.95, sum(rate(order_service_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "order p95", "refId": "A"}, {"expr": "histogram_quantile(0.95, sum(rate(catalog_service_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "catalog p95", "refId": "B"}],
@@ -28,7 +28,7 @@ data:
           "type": "timeseries"
         },
         {
-          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "targets": [{"expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=~\"order-service-dev|catalog-service-dev\"}", "legendFormat": "{{namespace}}/{{horizontalpodautoscaler}}", "refId": "A"}],
@@ -36,7 +36,7 @@ data:
           "type": "timeseries"
         },
         {
-          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "targets": [{"expr": "sum(kube_pod_status_ready{namespace=~\"order-service-dev|catalog-service-dev\", condition=\"true\"}) by (namespace)", "legendFormat": "{{namespace}} ready pods", "refId": "A"}],
