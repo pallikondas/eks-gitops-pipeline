@@ -144,6 +144,14 @@ For a complete environment deployment, manually run the `Deploy ShopCore Environ
 
 After the deployment workflow succeeds, run both service workflows from `main`: `CI/CD Pipeline - Order Service` and `CI/CD Pipeline - Catalog Service`. Each workflow runs tests, CodeQL, an image scan, pushes an immutable SHA tag to ECR, and promotes that tag to the dev GitOps values file. Argo CD then rolls out the services. Only after both workflows succeed should you run the application, ALB, HPA, autoscaler, and load-test checks below.
 
+To wait for the complete environment without opening multiple polling terminals, run this once after both service workflows succeed:
+
+```sh
+./scripts/wait-for-environment.sh
+```
+
+The command waits for both Argo Applications to be `Synced` and `Healthy`, both Services to have ready endpoints, and both shared Ingress objects to report the same ALB hostname. It exits successfully and prints ready-to-use curl commands when all conditions are met. It exits with diagnostics after 15 minutes by default; customize the limit with `TIMEOUT_SECONDS=1800 ./scripts/wait-for-environment.sh`.
+
 If any deployment stage fails, the workflow pauses at the protected `destroy-dev` environment and, after approval, removes Argo Applications before running Terraform destroy. This cleanup requires the same S3 backend secrets as the standalone destroy workflow. Keep `destroy_on_failure` enabled for disposable capstone runs; disable it only when intentionally preserving a partially deployed environment for investigation.
 
 ## Observability
