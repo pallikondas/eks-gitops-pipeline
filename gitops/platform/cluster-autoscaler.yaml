@@ -22,7 +22,7 @@ rules:
     verbs: ["update"]
   - apiGroups: [""]
     resources: ["namespaces", "pods", "nodes", "replicationcontrollers", "services", "persistentvolumeclaims", "persistentvolumes"]
-    verbs: ["watch", "list", "get"]
+    verbs: ["watch", "list", "get", "update", "patch"]
   - apiGroups: ["apps"]
     resources: ["replicasets", "daemonsets", "statefulsets"]
     verbs: ["watch", "list", "get"]
