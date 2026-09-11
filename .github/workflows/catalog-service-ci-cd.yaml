@@ -20,6 +20,10 @@ env:
   ECR_REPOSITORY: megamart-shopcore/catalog-service
   IMAGE_TAG: ${{ github.sha }}
 
+concurrency:
+  group: shopcore-catalog-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Catalog unit tests
@@ -154,7 +158,11 @@ jobs:
           git add gitops/environments/dev/catalog-values-dev.yaml
           git diff --cached --quiet || git commit -m "chore(gitops): promote catalog image ${IMAGE_TAG} [skip ci]"
           for attempt in 1 2 3 4 5; do
-            git push origin "${GITHUB_REF_NAME}" && break
+            if git push origin "${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
             git pull --rebase origin "${GITHUB_REF_NAME}"
             sleep 3
           done
+          echo "Unable to push GitOps promotion after 5 attempts"
+          exit 1

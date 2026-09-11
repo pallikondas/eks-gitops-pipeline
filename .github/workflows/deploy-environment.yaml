@@ -129,6 +129,7 @@ jobs:
         run: |
           kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=10m
           kubectl wait --for=condition=available deployment/metrics-server -n kube-system --timeout=10m
+          kubectl wait --for=condition=available deployment/aws-load-balancer-controller -n kube-system --timeout=10m
 
   verify:
     name: Verify deployment
@@ -151,17 +152,9 @@ jobs:
           kubectl get hpa -A
           kubectl get ingress -A
           kubectl get servicemonitor -A
-          kubectl wait --for=condition=available deployment/order-service -n order-service-dev --timeout=10m
-          kubectl wait --for=condition=available deployment/catalog-service -n catalog-service-dev --timeout=10m
-      - name: Verify ALB address
-        run: |
-          for attempt in {1..30}; do
-            address=$(kubectl get ingress -n order-service-dev order-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
-            if [[ -n "${address}" ]]; then echo "ALB=${address}"; exit 0; fi
-            sleep 10
-          done
-          echo "Timed out waiting for ALB address"
-          exit 1
+          kubectl get deployment -n kube-system aws-load-balancer-controller metrics-server
+          kubectl get applications -n argocd
+          echo "Platform verification complete. Run both service CI/CD workflows to promote fresh ECR images before validating application pods and the ALB."
 
   cleanup-on-failure:
     name: Destroy failed deployment

@@ -132,7 +132,9 @@ The ECR repositories use `force_delete` because this is an ephemeral capstone en
 
 ## Deploy with failure cleanup
 
-For a complete environment deployment, manually run the `Deploy ShopCore Environment` workflow. Enter `DEPLOY-megamart-shopcore-dev`, enable `destroy_on_failure`, and approve the `deploy-dev` environment. The workflow runs in order: Terraform plan/apply, Argo CD and platform bootstrap, workload synchronization, then ALB/workload verification.
+For a complete environment deployment, manually run the `Deploy ShopCore Environment` workflow. Enter `DEPLOY-megamart-shopcore-dev`, enable `destroy_on_failure`, and approve the `deploy-dev` environment. The workflow runs in order: Terraform plan/apply, Argo CD and platform bootstrap, then platform verification. It intentionally does not wait for application pods or an ALB before the service images exist.
+
+After the deployment workflow succeeds, run both service workflows from `main`: `CI/CD Pipeline - Order Service` and `CI/CD Pipeline - Catalog Service`. Each workflow runs tests, CodeQL, an image scan, pushes an immutable SHA tag to ECR, and promotes that tag to the dev GitOps values file. Argo CD then rolls out the services. Only after both workflows succeed should you run the application, ALB, HPA, autoscaler, and load-test checks below.
 
 If any deployment stage fails, the workflow pauses at the protected `destroy-dev` environment and, after approval, removes Argo Applications before running Terraform destroy. This cleanup requires the same S3 backend secrets as the standalone destroy workflow. Keep `destroy_on_failure` enabled for disposable capstone runs; disable it only when intentionally preserving a partially deployed environment for investigation.
 
