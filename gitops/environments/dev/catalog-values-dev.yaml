@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: 517811334008.dkr.ecr.us-east-1.amazonaws.com/megamart-shopcore/catalog-service
-  tag: a8647aa21bf91177aec6acc3393742741ae8c8d1
+  tag: a82cb1dca05b6d030db446998686cc2e0f498fc5
 
 resources:
   requests:
