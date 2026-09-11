@@ -17,6 +17,10 @@ env:
   EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
   IMAGE_TAG: ${{ github.sha }}
 
+concurrency:
+  group: shopcore-order-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ─────────────────────────────────────────────
   # Stage 1: Unit Tests
@@ -322,7 +326,11 @@ jobs:
           git add gitops/environments/dev/values-dev.yaml
           git diff --staged --quiet || git commit -m "chore(gitops): promote image ${{ env.IMAGE_TAG }} to dev [skip ci]"
           for attempt in 1 2 3 4 5; do
-            git push origin "${GITHUB_REF_NAME}" && break
+            if git push origin "${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
             git pull --rebase origin "${GITHUB_REF_NAME}"
             sleep 3
           done
+          echo "Unable to push GitOps promotion after 5 attempts"
+          exit 1
