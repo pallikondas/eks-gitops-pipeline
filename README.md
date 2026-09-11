@@ -87,13 +87,21 @@ kubectl get hpa -A
 kubectl get servicemonitor -A
 ```
 
-After DNS points `shopcore.example.com` at the ALB, validate:
+Once the ingress has an ALB hostname, validate directly before configuring DNS. The `Host` header is required because the Ingress uses the `shopcore.example.com` host rule:
 
 ```sh
-curl https://shopcore.example.com/orders/health
-curl 'https://shopcore.example.com/products?search=headphones'
-curl https://shopcore.example.com/products/p-laptop-001/inventory
+ALB_HOST=$(kubectl get ingress order-service -n order-service-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+test -n "${ALB_HOST}"
+curl -i -H 'Host: shopcore.example.com' "http://${ALB_HOST}/orders/health"
+curl -i -H 'Host: shopcore.example.com' "http://${ALB_HOST}/products?search=headphones"
+curl -i -H 'Host: shopcore.example.com' "http://${ALB_HOST}/products/p-laptop-001/inventory"
+curl -i -X POST "http://${ALB_HOST}/orders" \
+  -H 'Host: shopcore.example.com' \
+  -H 'Content-Type: application/json' \
+  -d '{"customerId":"capstone-test","items":[{"productId":"p-laptop-001","quantity":1}]}'
 ```
+
+After DNS points `shopcore.example.com` at the ALB, repeat the same requests without the explicit `Host` header using `https://shopcore.example.com/...` if TLS has been configured.
 
 To test failover, delete one service pod and confirm the ALB remains healthy while Kubernetes replaces the pod:
 
@@ -108,7 +116,7 @@ Generate traffic against the ALB or a port-forwarded service, then watch HPA sta
 
 ```sh
 kubectl run load-generator --image=busybox:1.36 --restart=Never -- \
-  /bin/sh -c 'while true; do wget -q -O- http://order-service.order-service-dev/orders/health; done'
+  /bin/sh -c "while true; do wget -q -O- --header='Host: shopcore.example.com' http://${ALB_HOST}/orders/health; done"
 kubectl get hpa -n order-service-dev -w
 kubectl delete pod load-generator
 ```
