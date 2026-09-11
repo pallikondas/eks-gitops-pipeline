@@ -42,12 +42,14 @@ app.get('/metrics', async (req, res) => {
   res.end(await metricsRegistry.metrics());
 });
 
-app.get('/health', (req, res) => {
+const healthHandler = (req, res) => {
   res.status(200).json({
     status: 'healthy',
     version: process.env.APP_VERSION || '1.0.0'
   });
-});
+};
+
+app.get(['/health', '/orders/health'], healthHandler);
 
 app.get('/orders', async (req, res) => {
   if (!dynamoClient) {

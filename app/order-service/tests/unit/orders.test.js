@@ -8,6 +8,12 @@ describe('Order Service - Unit Tests', () => {
     expect(response.body.status).toBe('healthy');
   });
 
+  test('GET /orders/health returns 200 for the ALB route', async () => {
+    const response = await request(app).get('/orders/health');
+    expect(response.statusCode).toBe(200);
+    expect(response.body.status).toBe('healthy');
+  });
+
   test('POST /orders with valid body returns 201', async () => {
     const response = await request(app)
       .post('/orders')
