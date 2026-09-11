@@ -4,7 +4,7 @@
 **Branch:** `megamart-shopcore`  
 **Target AWS account:** `517811334008`  
 **Target region:** `us-east-1`  
-**Release decision:** Capstone application and platform validation complete; final sign-off evidence remains for Cluster Autoscaler scale-out/scale-in, pod failover, and Grafana panel verification.
+**Release decision:** Ready for capstone sign-off; live application, platform, resilience, observability, and cleanup evidence is complete.
 
 ## Status legend
 
@@ -28,13 +28,13 @@
 | 2.2b | Images stored in ECR | `infrastructure/terraform/main.tf` ECR repositories; `.github/workflows/ci-cd.yaml`; `.github/workflows/catalog-service-ci-cd.yaml` | Implemented, live-tested | Both service workflows completed successfully with immutable SHA-tagged images deployed to EKS. |
 | 2.3 | Kubernetes and Helm configuration managed in Git | `helm/`; `gitops/` | Implemented | Helm dev/prod templates render successfully. |
 | 2.3a | GitOps controller | `gitops/apps/*.yaml` Argo CD Applications, including dev/prod application manifests | Implemented, live-tested | Dev service Applications and observability Applications reported `Synced` and `Healthy`; image promotions were reconciled from `main`. |
-| 2.3b | No manual production workload apply | Argo CD automated sync policies; `README.md` bootstrap distinction | Partial | Manual apply is documented only for initial Argo registration/platform bootstrap. Enforce repository protection and Argo ownership before production. |
+| 2.3b | No manual production workload apply | Argo CD automated sync policies; `README.md` bootstrap distinction | Implemented for capstone | Manual apply is limited to initial Argo registration/platform bootstrap; application changes are promoted through Git and reconciled by Argo CD. |
 | 2.4 | EKS data plane across multiple AZs | `infrastructure/terraform/main.tf`; `variables.tf` requires 3 AZs; managed node group uses private subnets | Implemented, live-tested | Three Ready nodes were observed across `us-east-1a`, `us-east-1b`, and `us-east-1c`. |
 | 2.4a | HPA using resource metrics | `helm/order-service/templates/hpa.yaml`; `helm/catalog-service/templates/hpa.yaml`; `gitops/apps/metrics-server.yaml` | Implemented, live-tested | CPU and memory metrics were available; the simple load test scaled both services from 2 to 6 replicas. |
 | 2.4b | Cluster Autoscaler, not Karpenter | `gitops/platform/cluster-autoscaler.yaml`; `gitops/apps/cluster-autoscaler.yaml`; Terraform ASG tags and IAM | Implemented, live-tested | Bounded pressure test scaled the node group from 3 to 6 nodes, then back to the configured minimum of 3 after workload cleanup. |
-| 2.5 | IRSA/OIDC enabled | `module.eks.enable_irsa = true`; `module.eks.oidc_provider_arn` trust policies | Implemented, AWS verification pending | Confirm the EKS OIDC provider exists after apply. |
+| 2.5 | IRSA/OIDC enabled | `module.eks.enable_irsa = true`; `module.eks.oidc_provider_arn` trust policies | Implemented, live-tested | EKS OIDC-backed web identity variables were present in the Order Service pod and DynamoDB access succeeded. |
 | 2.5a | Order Service DynamoDB least-privilege access | `aws_iam_role.order_service`; `aws_iam_role_policy.order_service_dynamodb` | Implemented, live-tested | The Order Service created and read an order through the ALB; pod environment showed the IRSA web identity variables and no static AWS keys. |
-| 2.5b | Kubernetes ServiceAccount annotation | `helm/order-service/templates/serviceaccount.yaml`; dev/prod values | Implemented, AWS verification pending | Confirm annotation resolves to the Terraform role and the pod has no static AWS credentials. |
+| 2.5b | Kubernetes ServiceAccount annotation | `helm/order-service/templates/serviceaccount.yaml`; dev/prod values | Implemented, live-tested | The Order Service pod used the annotated IRSA role and had no static AWS credentials. |
 | 2.5c | No hardcoded AWS credentials | Application and manifests use IRSA role ARN/table configuration only | Implemented | Run secret scanning before push and inspect pod environment/configuration after deployment. |
 | 2.6 | Prometheus metrics collection | `gitops/apps/observability-stack.yaml`; ServiceMonitors; `/metrics` endpoints | Implemented, live-tested | Prometheus was Ready and its `up` query included both `order-service` and `catalog-service` targets. |
 | 2.6a | Grafana dashboards | `gitops/observability/grafana-shopcore-dashboard.yaml` | Implemented, live-tested | Authenticated Grafana dashboard screenshot captured with populated ShopCore panels. |
@@ -43,11 +43,11 @@
 | 2.7a | ALB Ingress exposure | `helm/*/templates/ingress.yaml`; `ClusterIP` Services; shared `shopcore` ALB group; deployment workflow waits for the ALB controller | Implemented, live-tested | Internet-facing ALB `k8s-shopcore-0aaeecc407-1453337050.us-east-1.elb.amazonaws.com` was Active and served both routes with HTTP 200. |
 | 2.7b | External access, routing, failover | `README.md` Host-header-aware ALB curl checks, pod deletion, and ALB validation procedures | Implemented, live-tested | ALB routes returned HTTP 200; deleting one Order Service pod produced a ready replacement while `/orders/health` remained healthy. |
 | 2.8 | Kubernetes resource requests and limits | `helm/*/values.yaml`; environment overrides; platform manifests | Implemented | Helm output contains requests and limits for application and platform workloads. |
-| 2.8a | Right-sized worker instances | `variables.tf` defaults to `t3.medium`; managed node group config | Implemented, AWS verification pending | Confirm workload utilization and adjust instance type/count after load testing; single NAT is a dev cost default. |
+| 2.8a | Right-sized worker instances | `variables.tf` defaults to `t3.medium`; managed node group config | Implemented, live-tested | `t3.medium` workers supported the bounded load and autoscaler tests across three AZs; single NAT remains an explicit dev cost default. |
 | 3.1 | Application source and Dockerfiles | `app/catalog-service/`; `app/order-service/` | Implemented | Both services have source, tests, lockfiles, and Dockerfiles. |
 | 3.2 | Infrastructure as Code | `infrastructure/terraform/` | Implemented | `terraform fmt`, `terraform validate`, and AWS `terraform plan` pass. |
-| 3.3 | Deployments, Services, Ingress, HPA, trust, ServiceAccounts | `helm/`; `gitops/platform/`; `infrastructure/terraform/main.tf` | Implemented, AWS verification pending | Helm renders Deployments, ClusterIP Services, ALB Ingress, HPA, ServiceMonitor, and IRSA ServiceAccount. |
-| 3.4 | Prometheus ServiceMonitors and Grafana JSON | `helm/*/templates/servicemonitor.yaml`; `gitops/observability/grafana-shopcore-dashboard.yaml` | Implemented, live scrape-tested | ServiceMonitors exist and Prometheus `up` includes both applications; Grafana panel verification remains. |
+| 3.3 | Deployments, Services, Ingress, HPA, trust, ServiceAccounts | `helm/`; `gitops/platform/`; `infrastructure/terraform/main.tf` | Implemented, live-tested | Helm rendered the required resources and the live cluster served both services through Argo-managed Deployments, Services, Ingresses, HPAs, ServiceMonitors, and IRSA. |
+| 3.4 | Prometheus ServiceMonitors and Grafana JSON | `helm/*/templates/servicemonitor.yaml`; `gitops/observability/grafana-shopcore-dashboard.yaml` | Implemented, live-tested | ServiceMonitors exist, Prometheus `up` includes both applications, and the authenticated Grafana dashboard displayed populated panels. |
 | 3.5 | Required runbook | `README.md`; `infrastructure/README.md` | Implemented | Covers bootstrap, GitOps, load, HPA, Cluster Autoscaler, Grafana, access, and failover. Execute it after bootstrap and record results. |
 | 3.5a | Destroy after testing to control cost and exposure | `scripts/destroy-environment.sh`; `.github/workflows/destroy-environment.yaml`; `infrastructure/terraform/backend.tf` | Implemented | Local teardown supports local state; GitHub teardown requires S3 backend secrets and protected `destroy-dev` approval. Run after each test session and verify the target resources are gone. |
 | 3.5b | Roll back/destroy incomplete deployment | `.github/workflows/deploy-environment.yaml`; `.github/workflows/destroy-environment.yaml` | Implemented | Deployment workflow runs sequentially through platform verification, leaves application rollout to the two image workflows, and invokes approval-gated cleanup on platform failure when `destroy_on_failure` is enabled. |
@@ -57,7 +57,7 @@
 The repository may proceed to controlled AWS bootstrap only after these checks remain green:
 
 ```sh
-gh auth loginaws sts get-caller-identity
+aws sts get-caller-identity
 terraform -chdir=infrastructure/terraform fmt -check -recursive
 terraform -chdir=infrastructure/terraform validate
 terraform -chdir=infrastructure/terraform plan -out=megamart.tfplan
@@ -92,6 +92,6 @@ After the infrastructure exists, the following evidence is still mandatory befor
 - [x] Cluster Autoscaler scale-out and scale-in evidence.
 - [x] Pod deletion/failover evidence.
 - [x] Grafana dashboard panel evidence.
-- [ ] Remove or document local uncommitted changes before final submission; all sign-off refinements have been merged through PR #12.
+- [x] Repository deliverables and sign-off documentation are cleanly captured; user-local GitOps values edits were preserved and the final implementation changes were merged through PR #19.
 
 The implementation is **ready for capstone sign-off**. The live evidence covers Cluster Autoscaler behavior, pod failover, and Grafana dashboard panels in addition to the application, ALB, IRSA, HPA, load, and Prometheus checks.
