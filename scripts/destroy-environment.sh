@@ -63,5 +63,39 @@ if [[ -n "${TF_BACKEND_BUCKET:-}" ]]; then
 else
   terraform init -input=false -backend=false
 fi
-terraform destroy -input=false -auto-approve
+
+# The ALB controller can create security groups outside Terraform. Once the
+# cluster and load balancer are gone, remove only orphaned groups in this
+# dedicated project VPC before Terraform attempts to delete the VPC.
+vpc_id="$(aws ec2 describe-vpcs \
+  --region "${AWS_REGION}" \
+  --filters "Name=tag:Project,Values=${PROJECT_NAME}" "Name=tag:Environment,Values=${ENVIRONMENT}" \
+  --query 'Vpcs[0].VpcId' --output text 2>/dev/null || true)"
+if [[ -n "${vpc_id}" && "${vpc_id}" != "None" ]]; then
+  eni_count="$(aws ec2 describe-network-interfaces \
+    --region "${AWS_REGION}" --filters "Name=vpc-id,Values=${vpc_id}" \
+    --query 'length(NetworkInterfaces)' --output text 2>/dev/null || printf '0')"
+  if [[ "${eni_count}" == "0" ]]; then
+    for security_group_id in $(aws ec2 describe-security-groups \
+      --region "${AWS_REGION}" --filters "Name=vpc-id,Values=${vpc_id}" \
+      --query 'SecurityGroups[?GroupName!=`default`].GroupId' --output text); do
+      aws ec2 delete-security-group --region "${AWS_REGION}" --group-id "${security_group_id}" || true
+    done
+  else
+    printf 'Retaining VPC security groups while %s network interfaces remain.\n' "${eni_count}" >&2
+  fi
+fi
+
+destroy_succeeded=false
+for attempt in 1 2 3; do
+  if terraform destroy -input=false -auto-approve; then
+    destroy_succeeded=true
+    break
+  fi
+  printf 'Terraform destroy attempt %s failed; retrying for asynchronous AWS cleanup.\n' "${attempt}" >&2
+done
+if [[ "${destroy_succeeded}" != true ]]; then
+  printf 'Terraform destroy failed after 3 attempts.\n' >&2
+  exit 1
+fi
 printf 'Destroy completed for %s in %s.\n' "${CLUSTER_NAME}" "${AWS_REGION}"
