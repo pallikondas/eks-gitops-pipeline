@@ -218,7 +218,8 @@ resource "aws_iam_role_policy" "cluster_autoscaler" {
         "autoscaling:SetDesiredCapacity",
         "autoscaling:TerminateInstanceInAutoScalingGroup",
         "ec2:DescribeInstanceTypes",
-        "ec2:DescribeLaunchTemplateVersions"
+        "ec2:DescribeLaunchTemplateVersions",
+        "eks:DescribeNodegroup"
       ]
       Resource = "*"
     }]
