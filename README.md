@@ -4,6 +4,8 @@ ShopCore is a Node.js/Express microservices platform deployed to Amazon EKS with
 
 Use [REQUIREMENTS_TRACEABILITY.md](REQUIREMENTS_TRACEABILITY.md) as the release gate against the capstone requirements.
 
+See [docs/evidence/](docs/evidence/) for the recorded live-validation results, autoscaler evidence, Grafana notes, and workflow links used for capstone sign-off.
+
 ## Repository layout
 
 ```text
