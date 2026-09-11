@@ -128,6 +128,22 @@ jobs:
       - name: Wait for platform applications
         run: |
           kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=10m
+          for attempt in {1..60}; do
+            sync_status=$(kubectl get application metrics-server -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || true)
+            health_status=$(kubectl get application metrics-server -n argocd -o jsonpath='{.status.health.status}' 2>/dev/null || true)
+            if [[ "${sync_status}" == "Synced" && "${health_status}" == "Healthy" ]]; then
+              break
+            fi
+            sleep 10
+          done
+          sync_status=$(kubectl get application metrics-server -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || true)
+          health_status=$(kubectl get application metrics-server -n argocd -o jsonpath='{.status.health.status}' 2>/dev/null || true)
+          if [[ "${sync_status}" != "Synced" || "${health_status}" != "Healthy" ]]; then
+            kubectl get application metrics-server -n argocd -o yaml || true
+            kubectl get events -n kube-system --sort-by=.metadata.creationTimestamp | tail -50 || true
+            echo "metrics-server Argo Application did not become Synced and Healthy (sync=${sync_status}, health=${health_status})"
+            exit 1
+          fi
           kubectl wait --for=condition=available deployment/metrics-server -n kube-system --timeout=10m
           kubectl wait --for=condition=available deployment/aws-load-balancer-controller -n kube-system --timeout=10m
 
